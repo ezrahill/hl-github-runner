@@ -36,6 +36,7 @@ Ansible is deployed to configure the provisioned VMs by installing necessary pac
 2. **Ansible Variables**:
    - `secrets.yaml`: Contains encrypted secrets like GitHub Personal Access Token. (Ensure this file is never uploaded to version control).
    - `repos.yaml`: Contains a list of repositories to set up GitHub Actions runners. (This file should also be kept out of version control).
+   - `password`: Contains the Ansible Key Vault password. (Ensure this file is never uploaded to version control).
 
 ### Initializing Terraform
 

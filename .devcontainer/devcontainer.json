@@ -1,0 +1,8 @@
+{
+	"name": "${localWorkspaceFolderBasename}",
+	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+	"build": { "dockerfile": "Dockerfile" },
+	"mounts": [
+		"source=${localEnv:HOME}/.ssh,target=/root/.ssh,type=bind,consistency=cached"
+	]
+}
