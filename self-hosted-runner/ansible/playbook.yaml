@@ -1,0 +1,78 @@
+---
+- name: Ansible playbook for deploying multiple GitHub Runners on a single machine
+  hosts: all
+  remote_user: ubuntu
+  vars_files:
+    - secrets.yaml # Not included in the repository, contains the encrypted secret for the personal access token
+    - repos.yaml # Not included in the repository, contains the list of repositories to install a runner for
+  vars:
+    runner_version: "v2.316.1"
+    runner_tarball: "actions-runner-linux-x64-2.316.1.tar.gz"
+    runner_url: "https://github.com/actions/runner/releases/download/{{ runner_version }}/{{ runner_tarball }}"
+    runner_checksum: "d62de2400eeeacd195db91e2ff011bfb646cd5d85545e81d8f78c436183e09a8"
+
+  tasks:
+    - name: Install jq for JSON processing
+      package:
+        name: jq
+        state: present
+      become: true
+
+    - name: Create main runner folder
+      file:
+        path: /tmp/actions-runner
+        state: directory
+        mode: 0755
+
+    - name: Copy scripts to the runner folder
+      copy:
+        src: "./{{ item }}"
+        dest: "/tmp/actions-runner/{{ item }}"
+        mode: '0755'
+      loop:
+        - get_token.sh
+
+    - name: Create individual repo folders
+      file:
+        path: "/tmp/actions-runner/repo-{{ item.name }}"
+        state: directory
+        mode: 0755
+      loop: "{{ repos }}"
+
+    - name: Download the latest runner package
+      get_url:
+        url: "{{ runner_url }}"
+        dest: "/tmp/actions-runner/{{ runner_tarball }}"
+
+    - name: Validate the checksum of the downloaded tarball
+      shell: echo "{{ runner_checksum }}  /tmp/actions-runner/{{ runner_tarball }}" | shasum -a 256 -c
+
+    - name: Set permissions for the runner directory
+      file:
+        path: /tmp/actions-runner
+        owner: ubuntu
+        group: ubuntu
+        recurse: true
+        mode: '0775'
+      become: true
+
+    - name: Extract the installer to each repository folder
+      shell: tar xzf "/tmp/actions-runner/{{ runner_tarball }}" -C "/tmp/actions-runner/repo-{{ item.name }}"
+      loop: "{{ repos }}"
+
+    - name: Create the runner and start the configuration process
+      shell: |
+        ./config.sh --url {{ item.url }} --token $(../get_token.sh --pat="{{ pat }}" --repo="{{ item.url }}") --name gh-runner-01-{{ item.name }} --unattended --replace
+        sudo ./svc.sh install
+        #sudo ./svc.sh start
+      args:
+        chdir: "/tmp/actions-runner/repo-{{ item.name }}"
+      loop: "{{ repos }}"
+      ignore_errors: yes # TODO: This is a hack to get around the fact that the runner is already installed
+
+    - name: Start the runner service for each repository
+      systemd:
+        name: "actions.runner.ezrahill-{{ item.name }}.gh-runner-01-{{ item.name }}.service"
+        state: started
+      loop: "{{ repos }}"
+      become: true
