@@ -1,0 +1,7 @@
+repos:
+  - name: mark-this-down
+    url: https://github.com/ezrahill/mark-this-down
+  - name: k8s-sandbox
+    url: https://github.com/ezrahill/k8s-sandbox
+  - name: hl-iac-mono-repo
+    url: https://github.com/ezrahill/hl-iac-mono-repo

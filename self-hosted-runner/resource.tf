@@ -5,7 +5,7 @@ resource "proxmox_vm_qemu" "runner" {
   target_node = var.pm_host
 
   clone      = "ubuntu2204-temp"
-  full_clone = "false"
+  full_clone = "true"
   os_type    = "cloud-init"
 
   cores  = 2
@@ -13,6 +13,24 @@ resource "proxmox_vm_qemu" "runner" {
 
   bootdisk = "scsi0"
   scsihw   = "virtio-scsi-pci"
+
+  disks {
+    scsi {
+      scsi0 {
+        disk {
+          storage = "local-zfs"
+          size    = "40G"
+        }
+      }
+    }
+    ide {
+      ide2 {
+        cloudinit {
+          storage = "local-zfs"
+        }
+      }
+    }
+  }
 
   network {
     model   = "virtio"
@@ -27,7 +45,6 @@ resource "proxmox_vm_qemu" "runner" {
     ignore_changes = [
       network.0.macaddr, # Ignore changes to macaddr
       sshkeys,           # Ignore changes to SSH keys
-      disk,              # Ignore changes to disk attributes
       network,           # Ignore changes to network attributes
     ]
   }
